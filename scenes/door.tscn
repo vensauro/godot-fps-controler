@@ -1,0 +1,47 @@
+[gd_scene load_steps=7 format=3 uid="uid://bi3so55418lh8"]
+
+[ext_resource type="Script" path="res://scripts/door.gd" id="1_tixv5"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_se3hm"]
+size = Vector3(1, 2, 0.1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hbklb"]
+size = Vector3(1, 2, 0.1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ylx4b"]
+size = Vector3(0.1, 2, 0.1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_71odd"]
+albedo_color = Color(0.862745, 0.592157, 0.4, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_ic1bk"]
+material = SubResource("StandardMaterial3D_71odd")
+size = Vector3(0.1, 2, 0.1)
+
+[node name="Door" type="Node3D"]
+
+[node name="PhysicsDoor" type="RigidBody3D" parent="."]
+mass = 10.0
+script = ExtResource("1_tixv5")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="PhysicsDoor"]
+mesh = SubResource("BoxMesh_se3hm")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PhysicsDoor"]
+shape = SubResource("BoxShape3D_hbklb")
+
+[node name="DoorFrame" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.557014, 0, 0)
+metadata/_edit_group_ = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DoorFrame"]
+shape = SubResource("BoxShape3D_ylx4b")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="DoorFrame"]
+mesh = SubResource("BoxMesh_ic1bk")
+
+[node name="HingeJoint3D" type="HingeJoint3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, -0.4, 0, 0)
+node_a = NodePath("../PhysicsDoor")
+node_b = NodePath("../DoorFrame")
+angular_limit/enable = true

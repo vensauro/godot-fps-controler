@@ -1,0 +1,81 @@
+[gd_scene load_steps=9 format=3 uid="uid://dfpj8qq17ia2p"]
+
+[ext_resource type="PackedScene" uid="uid://57s40sq1536" path="res://scenes/player.tscn" id="1_xqq3m"]
+
+[sub_resource type="GDScript" id="GDScript_rtptt"]
+script/source = "extends RigidBody3D
+
+@onready var collision_shape_3d = $CollisionShape3D
+@onready var ray_cast_3d = $RayCast3D
+
+# Called when the node enters the scene tree for the first time.
+func _ready():
+	pass # Replace with function body.
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta):
+	pass
+	
+func _unhandled_input(event):
+	if event.is_action_pressed(\"jump\"):
+		collision_shape_3d.shape.height = 1
+
+	if event.is_action_released(\"jump\"):
+		collision_shape_3d.shape.height = 2
+"
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1hptl"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bmmqk"]
+size = Vector3(10, 0.1, 10)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_j5jl1"]
+albedo_color = Color(0.427451, 0.235294, 0.215686, 0.721569)
+
+[sub_resource type="BoxMesh" id="BoxMesh_42ktp"]
+material = SubResource("StandardMaterial3D_j5jl1")
+size = Vector3(10, 0.1, 10)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_klmpt"]
+size = Vector3(5, 0.1, 5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_ciamh"]
+size = Vector3(5, 0.1, 5)
+
+[node name="Node3D" type="Node3D"]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.99566, 0.0930657, 0, -0.0930657, 0.99566, 0, 0.817098, 4.07053)
+
+[node name="Player" parent="." instance=ExtResource("1_xqq3m")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.05213, 0, 0)
+
+[node name="test" type="RigidBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1.5139)
+script = SubResource("GDScript_rtptt")
+metadata/_edit_group_ = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="test"]
+shape = SubResource("CapsuleShape3D_1hptl")
+
+[node name="RayCast3D" type="RayCast3D" parent="test"]
+target_position = Vector3(0, 2, 0)
+
+[node name="floor" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="floor"]
+shape = SubResource("BoxShape3D_bmmqk")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="floor"]
+mesh = SubResource("BoxMesh_42ktp")
+
+[node name="cube" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1, 0)
+metadata/_edit_group_ = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="cube"]
+shape = SubResource("BoxShape3D_klmpt")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="cube"]
+mesh = SubResource("BoxMesh_ciamh")

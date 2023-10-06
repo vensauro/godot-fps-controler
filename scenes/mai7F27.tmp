@@ -1,0 +1,203 @@
+[gd_scene load_steps=22 format=3 uid="uid://b3vdeuaenrgog"]
+
+[ext_resource type="PackedScene" uid="uid://57s40sq1536" path="res://scenes/player.tscn" id="2_k3swc"]
+[ext_resource type="PackedScene" uid="uid://bi3so55418lh8" path="res://scenes/door.tscn" id="3_oeba0"]
+[ext_resource type="Texture2D" uid="uid://b05fqnlvtv1j4" path="res://addons/kenney_prototype_textures/green/texture_01.png" id="4_ssqsc"]
+[ext_resource type="Script" path="res://scripts/ball.gd" id="4_tq2sx"]
+[ext_resource type="Texture2D" uid="uid://dfhsco0ovhy2c" path="res://addons/kenney_prototype_textures/dark/texture_08.png" id="5_lqryt"]
+[ext_resource type="PackedScene" uid="uid://d0yxly7togeqk" path="res://assets/map.blend" id="6_risa6"]
+[ext_resource type="Texture2D" uid="uid://vuhosax51eju" path="res://addons/kenney_prototype_textures/orange/texture_04.png" id="7_dsbkb"]
+[ext_resource type="Texture2D" uid="uid://pam1tqx1dyuy" path="res://addons/kenney_prototype_textures/dark/texture_04.png" id="7_erudd"]
+[ext_resource type="Texture2D" uid="uid://blgcf1rdg0dge" path="res://addons/kenney_prototype_textures/orange/texture_01.png" id="8_wlhsu"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_wggc2"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_uvonf"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_11tx4"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1q218"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ruyto"]
+albedo_texture = ExtResource("4_ssqsc")
+uv1_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l0k2g"]
+albedo_texture = ExtResource("5_lqryt")
+uv1_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_edebl"]
+albedo_texture = ExtResource("7_dsbkb")
+uv1_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7ooiu"]
+albedo_texture = ExtResource("8_wlhsu")
+uv1_triplanar = true
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7fbkb"]
+size = Vector3(60, 2, 60)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3agrs"]
+albedo_texture = ExtResource("7_erudd")
+uv1_triplanar = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_xli6m"]
+material = SubResource("StandardMaterial3D_3agrs")
+size = Vector3(60, 2, 60)
+
+[sub_resource type="GDScript" id="GDScript_kltar"]
+script/source = "extends Control
+
+@export var player: Node
+
+@onready var camera: Node = $\"../../Player/CameraPivot/Camera3D\"
+var width = 2
+
+func _draw():
+	var color = Color(0, 1, 0)
+	var start = camera.unproject_position(player.global_transform.origin)
+	var end = camera.unproject_position(player.global_transform.origin + player.velocity)
+	draw_line(start, end, color, width)
+	draw_triangle(end, start.direction_to(end), width*2, color)
+
+func draw_triangle(pos, dir, size, color):
+	var a = pos + dir * size
+	var b = pos + dir.rotated(2*PI/3) * size
+	var c = pos + dir.rotated(4*PI/3) * size
+	var points = PackedVector2Array([a, b, c])
+	draw_polygon(points, PackedColorArray([color]))
+"
+
+[node name="main" type="Node"]
+
+[node name="world" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.117062, 1.32739)
+
+[node name="Door" parent="world" instance=ExtResource("3_oeba0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.882938, -4.66139)
+
+[node name="ball" type="Node3D" parent="world"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.479196, 0.882938, -3.36614)
+script = ExtResource("4_tq2sx")
+direction = "backward"
+metadata/_edit_group_ = true
+
+[node name="RigidBody3D" type="RigidBody3D" parent="world/ball"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="world/ball/RigidBody3D"]
+mesh = SubResource("SphereMesh_wggc2")
+skeleton = NodePath("../..")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="world/ball/RigidBody3D"]
+shape = SubResource("SphereShape3D_uvonf")
+
+[node name="box" type="StaticBody3D" parent="world"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.43505, 1.58565, -4.90333)
+metadata/_edit_group_ = true
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="world/box"]
+mesh = SubResource("BoxMesh_11tx4")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="world/box"]
+shape = SubResource("BoxShape3D_1q218")
+
+[node name="box2" type="StaticBody3D" parent="world"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.69077, 0.35891, -4.8942)
+metadata/_edit_group_ = true
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="world/box2"]
+mesh = SubResource("BoxMesh_11tx4")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="world/box2"]
+shape = SubResource("BoxShape3D_1q218")
+
+[node name="box3" type="StaticBody3D" parent="world"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.68682, 2.70716, -4.90333)
+metadata/_edit_group_ = true
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="world/box3"]
+mesh = SubResource("BoxMesh_11tx4")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="world/box3"]
+shape = SubResource("BoxShape3D_1q218")
+
+[node name="box4" type="StaticBody3D" parent="world"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.38427, 0.35891, -4.8942)
+metadata/_edit_group_ = true
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="world/box4"]
+mesh = SubResource("BoxMesh_11tx4")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="world/box4"]
+shape = SubResource("BoxShape3D_1q218")
+
+[node name="box5" type="StaticBody3D" parent="world"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.38033, 2.70716, -5.65402)
+metadata/_edit_group_ = true
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="world/box5"]
+mesh = SubResource("BoxMesh_11tx4")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="world/box5"]
+shape = SubResource("BoxShape3D_1q218")
+
+[node name="Node3D" type="Node3D" parent="world"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.2355, -0.117062, -1.32739)
+
+[node name="CSGBox3D" type="CSGBox3D" parent="world/Node3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.21285, 0.0716867, -0.0246964)
+material_override = SubResource("StandardMaterial3D_ruyto")
+use_collision = true
+size = Vector3(1, 0.356445, 1)
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="world/Node3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.61931, 0.0716867, -0.0246964)
+material_override = SubResource("StandardMaterial3D_l0k2g")
+use_collision = true
+size = Vector3(0.705661, 0.811604, 1)
+
+[node name="map" parent="world" instance=ExtResource("6_risa6")]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 17.3763, 0.882938, 2.90013)
+
+[node name="house" parent="world/map" index="0"]
+material_override = SubResource("StandardMaterial3D_edebl")
+
+[node name="stair" parent="world/map" index="1"]
+material_override = SubResource("StandardMaterial3D_7ooiu")
+
+[node name="Ground" type="StaticBody3D" parent="world"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.11706, -1.32739)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="world/Ground"]
+shape = SubResource("BoxShape3D_7fbkb")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="world/Ground"]
+mesh = SubResource("BoxMesh_xli6m")
+
+[node name="lights" type="Node3D" parent="."]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="lights"]
+transform = Transform3D(-0.866024, -0.433016, 0.250001, 0, 0.499998, 0.866026, -0.500003, 0.749999, -0.43301, 26.1513, 26.03, 0)
+shadow_enabled = true
+
+[node name="DirectionalLight3D2" type="DirectionalLight3D" parent="lights"]
+transform = Transform3D(0.258819, 4.2222e-08, -0.965926, 0.965926, -1.13133e-08, 0.258819, 0, -1, -4.37114e-08, 0, 4.94447, 4.57557)
+light_energy = 0.145
+light_indirect_energy = 0.805
+light_volumetric_fog_energy = 0.908
+
+[node name="Player" parent="." instance=ExtResource("2_k3swc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.117062, 1.32739)
+camera_on_debug = true
+
+[node name="DebugOverlay" type="CanvasLayer" parent="."]
+
+[node name="DebugDraw3D" type="Control" parent="DebugOverlay" node_paths=PackedStringArray("player")]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = SubResource("GDScript_kltar")
+player = NodePath("../../Player")
+
+[editable path="world/map"]
