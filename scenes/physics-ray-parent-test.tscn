@@ -52,13 +52,16 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.05213, 0, 0)
 
 [node name="test" type="RigidBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1.5139)
+visible = false
 script = SubResource("GDScript_rtptt")
 metadata/_edit_group_ = true
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="test"]
 shape = SubResource("CapsuleShape3D_1hptl")
+disabled = true
 
 [node name="RayCast3D" type="RayCast3D" parent="test"]
+enabled = false
 target_position = Vector3(0, 2, 0)
 
 [node name="floor" type="StaticBody3D" parent="."]

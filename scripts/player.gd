@@ -4,12 +4,19 @@ var tween: Tween
 var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 @onready var camera_3d = $CameraPivot/Camera3D
-@onready var crouching_shape_cast = $CrouchingShapeCast
+@onready var crouching_shape_cast: ShapeCast3D = $CrouchingShapeCast
+@onready var crouching_cylinder_colider: CylinderShape3D = crouching_shape_cast.shape
 
-@onready var capsule: CapsuleShape3D = $CollisionShape3D.shape 
-@onready var mesh: CapsuleMesh = $MeshInstance3D.mesh
+@onready var capsule_collision_shape: CollisionShape3D = $CollisionShape3D
+@onready var capsule: CapsuleShape3D = capsule_collision_shape.shape 
+
+@onready var mesh_instance: MeshInstance3D = $MeshInstance3D
+@onready var mesh: CapsuleMesh = mesh_instance.mesh
+
 @onready var camera_pivot = $CameraPivot
+
 @onready var debug_info = $PlayerDebugInfo/Panel/MarginContainer/VBoxContainer/Label
+
 @onready var stair_collision_shape: CollisionShape3D = $StairCollisionShape
 @onready var stair_separation_ray: SeparationRayShape3D = stair_collision_shape.shape
 
@@ -38,11 +45,12 @@ var slide_actual_time = slide_time
 @export var mouse_sensitivity = 0.002
 var mouse_captured = false
 
-var camera_height = 1.8
-@onready var character_height = capsule.height
-var crouch_decrease_percent = .44
-var crouch_duration = .8
-var final_height = 1 - crouch_decrease_percent
+@export var character_height: float = 2
+var camera_height: float = 1.8
+var character_position: float
+var crouch_decrease_percent: float = .44
+var crouch_duration: float = .8
+var final_height: float = 1 - crouch_decrease_percent
 
 var is_running = false
 var is_crouching = false
@@ -51,15 +59,27 @@ var is_sliding = false
 func _ready():
 	camera_pivot.position.z = 2.5 if camera_on_debug else 0.0
 
+	stair_separation_ray.length = stair_height
+	stair_collision_shape.position.y = stair_height
+
+	character_height = character_height - stair_height
+	character_position = (character_height / 2) + stair_height
+
+	capsule.height = character_height
+	mesh.height = character_height
+	capsule_collision_shape.position.y = character_position
+	mesh_instance.position.y = character_position
+	
+	camera_height = character_height - character_height / 10
+	camera_pivot.position.y = camera_height
+	
+	crouching_cylinder_colider.height = character_height
+#	crouching_shape_cast.position.y = 1.795
+	crouching_shape_cast.position.y = (crouching_cylinder_colider.height / 2) + character_height * final_height
+
+
 func _physics_process(delta):
 	is_running = Input.is_action_pressed("sprint")
-	
-	DebugDraw3D.draw_line(
-		stair_collision_shape.position,
-		stair_collision_shape.position + Vector3.DOWN * stair_separation_ray.length,
-		Color.BLACK,
-#		1
-	)
 
 	if Input.is_action_pressed("crouch"):
 		is_crouching = true
@@ -70,8 +90,8 @@ func _physics_process(delta):
 		tween.set_parallel(true)
 
 		var change_height = character_height * final_height
-#		stair_separation_ray.length = .2
-#		stair_collision_shape.position.y = 2
+		# TODO calculate the exact height to be here
+		stair_collision_shape.position.y = change_height
 		tween.tween_property(capsule, "height", change_height, tween_duration)
 		tween.tween_property(mesh, "height", change_height, tween_duration)
 		tween.tween_property(camera_pivot, "position:y", camera_height * final_height, tween_duration)
@@ -82,9 +102,7 @@ func _physics_process(delta):
 		tween = get_tree().create_tween()
 		tween.set_parallel(true)
 
-#		tween.tween_property(stair_collision_shape, "position:y", character_height, crouch_duration)
-#		tween.tween_property(stair_separation_ray, "length", character_height, crouch_duration)
-#		tween.tween_property(stair_separation_ray, "height", character_height, crouch_duration)
+		tween.tween_property(stair_collision_shape, "position:y", stair_height, crouch_duration)
 		tween.tween_property(capsule, "height", character_height, crouch_duration)
 		tween.tween_property(mesh, "height", character_height, crouch_duration)
 		tween.tween_property(camera_pivot, "position:y", camera_height, crouch_duration)

@@ -171,6 +171,5 @@ light_volumetric_fog_energy = 0.908
 
 [node name="Player" parent="." instance=ExtResource("2_k3swc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.117062, 1.32739)
-camera_on_debug = true
 
 [editable path="world/map"]
