@@ -56,8 +56,25 @@ var is_running = false
 var is_crouching = false
 var is_sliding = false
 
+var can_slide: bool:
+	get:
+		return is_sliding and slide_actual_time > 0
+		
+var speed_without_running: float:
+	get:
+		if can_slide:
+			return slide_speed
+		elif is_crouching and is_on_floor():
+			return crouch_speed
+		else:
+			return walking_speed
+			
+var speed: float:
+	get:
+		return speed_without_running * sprint_multiplier if is_running else speed_without_running
+
 func _ready():
-	camera_pivot.position.z = 2.5 if camera_on_debug else 0.0
+	camera_3d.position.z = 2.5 if camera_on_debug else 0.0
 
 	stair_separation_ray.length = stair_height
 	stair_collision_shape.position.y = stair_height
@@ -77,35 +94,13 @@ func _ready():
 #	crouching_shape_cast.position.y = 1.795
 	crouching_shape_cast.position.y = (crouching_cylinder_colider.height / 2) + character_height * final_height
 
-
 func _physics_process(delta):
 	is_running = Input.is_action_pressed("sprint")
 
 	if Input.is_action_pressed("crouch"):
-		is_crouching = true
-		crouching_shape_cast.enabled = true
-		var tween_duration = crouch_duration / 4 if is_running else crouch_duration
-
-		tween = get_tree().create_tween()
-		tween.set_parallel(true)
-
-		var change_height = character_height * final_height
-		# TODO calculate the exact height to be here
-		stair_collision_shape.position.y = change_height
-		tween.tween_property(capsule, "height", change_height, tween_duration)
-		tween.tween_property(mesh, "height", change_height, tween_duration)
-		tween.tween_property(camera_pivot, "position:y", camera_height * final_height, tween_duration)
+		_crouching_down()
 	elif !crouching_shape_cast.is_colliding() and crouching_shape_cast.enabled:
-		is_crouching = false
-		crouching_shape_cast.enabled = false
-
-		tween = get_tree().create_tween()
-		tween.set_parallel(true)
-
-		tween.tween_property(stair_collision_shape, "position:y", stair_height, crouch_duration)
-		tween.tween_property(capsule, "height", character_height, crouch_duration)
-		tween.tween_property(mesh, "height", character_height, crouch_duration)
-		tween.tween_property(camera_pivot, "position:y", camera_height, crouch_duration)
+		_crouching_up()
 
 
 	if velocity.length_squared() >= running_squared - 1 \
@@ -115,19 +110,9 @@ func _physics_process(delta):
 	if slide_actual_time <= 0:
 		is_sliding = false
 
-	if slide_actual_time <= slide_time and !is_crouching:
+	if slide_actual_time <= slide_time and not is_crouching:
 		is_sliding = false
 		slide_actual_time = slide_time
-
-	var can_slide = is_sliding and slide_actual_time > 0
-
-	var speed: float = \
-		slide_speed if can_slide else \
-		crouch_speed if is_crouching and is_on_floor() else \
-		walking_speed
-		
-	if is_running:
-		speed *= sprint_multiplier
 
 	if can_slide:
 		slide_actual_time -= delta
@@ -135,13 +120,13 @@ func _physics_process(delta):
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = jump_velocity
 
-	if not is_on_floor():
+	if not is_on_floor() and not is_on_ledge:
 		velocity.y -= gravity * delta
 
 	var input_dir = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var direction = (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
 
-	if direction:
+	if direction and not is_on_ledge:
 		var x_velocity = direction.x * speed
 		var z_velocity = direction.z * speed
 
@@ -156,8 +141,37 @@ func _physics_process(delta):
 		_act_on_collision(collision)
 
 	move_and_slide()
+	
+	_get_ledge()
 
 	_show_debug_info(is_on_floor())
+	
+func _crouching_down():
+	is_crouching = true
+	crouching_shape_cast.enabled = true
+	var tween_duration = crouch_duration / 4 if is_running else crouch_duration
+
+	tween = get_tree().create_tween()
+	tween.set_parallel(true)
+
+	var change_height = character_height * final_height
+	# TODO calculate the exact height to be here
+	stair_collision_shape.position.y = change_height
+	tween.tween_property(capsule, "height", change_height, tween_duration)
+	tween.tween_property(mesh, "height", change_height, tween_duration)
+	tween.tween_property(camera_pivot, "position:y", camera_height * final_height, tween_duration)
+
+func _crouching_up():
+	is_crouching = false
+	crouching_shape_cast.enabled = false
+
+	tween = get_tree().create_tween()
+	tween.set_parallel(true)
+
+	tween.tween_property(stair_collision_shape, "position:y", stair_height, crouch_duration)
+	tween.tween_property(capsule, "height", character_height, crouch_duration)
+	tween.tween_property(mesh, "height", character_height, crouch_duration)
+	tween.tween_property(camera_pivot, "position:y", camera_height, crouch_duration)
 
 func _show_debug_info(on_floor):
 	if show_debug_info:
@@ -167,23 +181,16 @@ func _show_debug_info(on_floor):
 		return
 
 	var debug_text = [
-		"velocity²: {0}",
-		"is_running: {1}",
-		"is_crouching: {2}",
-		"is_sliding: {3}",
-		"slide_time: {4}",
-		"is_on_floor: {5}",
+		"velocity²: %s" % velocity.length(),
+		"is_running: %s" % is_running,
+		"is_crouching: %s" % is_crouching,
+		"is_sliding: %s" % is_sliding,
+		"slide_time: %s" % slide_actual_time,
+		"is_on_floor: %s" % on_floor,
+		"is_on_ledge: %s" % is_on_ledge
 	]
 
-	debug_info.text = "\n".join(debug_text) \
-		.format([
-			velocity.length_squared(),
-			is_running,
-			is_crouching,
-			is_sliding,
-			slide_actual_time,
-			on_floor,
-		])
+	debug_info.text = "\n".join(debug_text)
 
 func _act_on_collision(collision: KinematicCollision3D):
 	var collider = collision.get_collider()
@@ -196,17 +203,25 @@ func _act_on_collision(collision: KinematicCollision3D):
 		door.apply_central_impulse(-1 * collision.get_normal() * .3 * velocity.length())
 
 func _update_camera(mouse_relative: Vector2):
-	if !is_sliding:
-		rotate_y(-mouse_relative.x * mouse_sensitivity)
-	camera_3d.rotate_x(-mouse_relative.y * mouse_sensitivity)
-	camera_3d.rotation.x = clampf(camera_3d.rotation.x, tilt_lower_limit, tilt_upper_limit)
+	var mouse_montion_x = -mouse_relative.x * mouse_sensitivity
+	var mouse_montion_y = -mouse_relative.y * mouse_sensitivity
+	if camera_on_debug:
+		camera_pivot.rotate_y(mouse_montion_x)
+#		camera_pivot.rotate_x(mouse_montion_y)
+	else:
+		if not is_sliding and not is_on_ledge:
+			rotate_y(mouse_montion_x)
+		camera_3d.rotate_x(mouse_montion_y)
+		camera_3d.rotation.x = clampf(camera_3d.rotation.x, tilt_lower_limit, tilt_upper_limit)
 
 func _unhandled_input(event):
 	if event.is_action_pressed("ui_home"):
-		camera_pivot.position.z = 2.5 if camera_on_debug else 0.0
+		var tween = get_tree().create_tween()
 		camera_on_debug = !camera_on_debug
-		
-	
+		tween.parallel().tween_property(camera_pivot, "rotation", Vector3.ZERO, .3)
+		tween.parallel().tween_property(camera_3d, "rotation", Vector3.ZERO, .3)
+		tween.parallel().tween_property(camera_3d, "position:z", 2.5 if camera_on_debug else 0.0, .3)
+
 	if event.is_action_pressed("quit"):
 		get_tree().quit()
 	
@@ -221,4 +236,41 @@ func _unhandled_input(event):
 		
 		mouse_captured = !mouse_captured
 
+@onready var ledge_detect: RayCast3D = $LedgeGrab/LedgeDetect
+@onready var ledge_distance: RayCast3D = $LedgeGrab/LedgeDistance
+var is_on_ledge := false
+var ledge_collision = Vector3.ZERO
 
+func _get_ledge():
+	if is_on_ledge:
+		if Input.is_action_pressed("jump"):
+			is_on_ledge = false 
+		
+		if Input.is_action_just_pressed("jump"):
+			is_on_ledge = false
+			global_position = ledge_collision
+
+	if velocity.y > 0 and not is_on_floor() and not is_on_ledge:
+		return
+
+	ledge_detect.force_raycast_update()
+
+	if ledge_detect.is_colliding():
+		is_on_ledge = true
+		velocity.y = 0
+		ledge_collision.y = ledge_detect.get_collision_point().y
+		
+		ledge_distance.global_position.y = ledge_collision.y + .5
+		ledge_distance.force_raycast_update()
+		if ledge_distance.is_colliding():
+			is_on_ledge = false
+			return
+		
+		ledge_distance.global_position.y = ledge_collision.y - .1
+		ledge_distance.force_raycast_update()
+		if ledge_distance.is_colliding():
+			var collision_point = ledge_distance.get_collision_point()
+			ledge_collision.x = collision_point.x
+			ledge_collision.z = collision_point.z
+#			global_position = ledge_collision
+			
